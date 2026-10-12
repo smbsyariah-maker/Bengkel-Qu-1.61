@@ -1,0 +1,8 @@
+{
+  "name": "Bengkel Qu 1.61",
+  "description": "Aplikasi manajemen operasional bengkel motor dan mobil modern dengan UI Android/Flutter hijau bersih, fitur antrian servis, kasir POS, inventaris sparepart, dan CRM.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
