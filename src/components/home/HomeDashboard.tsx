@@ -13,7 +13,7 @@ import {
   TrendingUp,
   AlertCircle
 } from 'lucide-react';
-import { MenuModuleConfig, ServiceQueue, WorkshopProfile, UserSession } from '../../types';
+import { MenuModuleConfig, ServiceQueue, WorkshopProfile, UserSession, LicensePlan } from '../../types';
 import { IconRenderer } from '../common/IconRenderer';
 
 interface HomeDashboardProps {
@@ -28,6 +28,7 @@ interface HomeDashboardProps {
   profile?: WorkshopProfile;
   userSession?: UserSession | null;
   onLogout?: () => void;
+  licensePlan?: LicensePlan;
 }
 
 export const HomeDashboard: React.FC<HomeDashboardProps> = ({
@@ -41,7 +42,8 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   onQuickSearchPlat,
   profile,
   userSession,
-  onLogout
+  onLogout,
+  licensePlan = 'Core'
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -81,10 +83,10 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="text-[11px] font-medium text-emerald-100 uppercase tracking-wider">
-                  Bengkel Qu 1.60
+                  Bengkel Qu 1.61
                 </span>
                 <span className="px-1.5 py-0.2 bg-emerald-700/80 rounded text-[9px] font-bold text-emerald-200">
-                  PRO
+                  {licensePlan === 'Basic' ? 'BASIC' : licensePlan === 'AddOnBranch' ? 'ADD-ON' : 'PRO'}
                 </span>
               </div>
               <h2 className="text-lg font-bold text-white tracking-tight leading-tight">

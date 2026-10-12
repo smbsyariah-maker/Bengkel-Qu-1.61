@@ -247,3 +247,41 @@ export interface UserSession {
   autoLogin: boolean;
   loginTime: string;
 }
+
+// ================= LICENSE & SUBSCRIPTION TYPES =================
+export type LicensePlan = 'Basic' | 'Core' | 'AddOnBranch';
+
+/**
+ * @deprecated Legacy tier reference. Enterprise has been refactored into AddOnBranch.
+ */
+export type LegacyLicensePlan = 'Basic' | 'Core' | 'Enterprise';
+
+export const LICENSE_PLAN_ENUM = {
+  BASIC: 'Basic',
+  CORE: 'Core',
+  ADD_ON_BRANCH: 'AddOnBranch',
+  /** Deprecated alias pointing to AddOnBranch */
+  ENTERPRISE: 'AddOnBranch'
+} as const;
+
+export type LicenseBillingPeriod = '1_bulan' | '3_bulan' | '6_bulan' | '12_bulan';
+
+export interface LicensePlanInfo {
+  id: LicensePlan;
+  name: string;
+  badge: string;
+  subtitle: string;
+  dailyRate?: number;
+  description: string;
+}
+
+export interface CoreDurationOption {
+  id: LicenseBillingPeriod;
+  label: string;
+  days: number;
+  price: number;
+  formattedPrice: string;
+  badge?: string;
+  badgeColor?: string;
+  note?: string;
+}

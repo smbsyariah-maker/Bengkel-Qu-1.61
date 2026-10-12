@@ -270,12 +270,12 @@ export const MENU_MODULES: MenuModuleConfig[] = [
   },
   {
     id: 'basic',
-    title: 'Basic',
-    subtitle: 'Profil Bengkel',
+    title: 'Basic (Freemium)',
+    subtitle: 'Gratis / Kasir Dasar',
     iconName: 'Store',
-    badgeCount: 'Info',
-    badgeColor: 'bg-emerald-500',
-    description: 'Pengaturan identitas resmi bengkel, data pemilik, alamat operasional, dan kontak bisnis.',
+    badgeCount: 'Gratis',
+    badgeColor: 'bg-slate-500',
+    description: 'Profil usaha, kasir dasar, dan pencatatan transaksi standar tanpa biaya langganan.',
     subMenus: [
       {
         id: 'basic-profile',
@@ -288,12 +288,12 @@ export const MENU_MODULES: MenuModuleConfig[] = [
   },
   {
     id: 'core',
-    title: 'Core',
-    subtitle: 'Hak Akses & Role',
+    title: 'Core / Pro',
+    subtitle: 'Rp1.000 / Hari',
     iconName: 'ShieldAlert',
-    badgeCount: '2 Role',
+    badgeCount: 'Rp1.000/hr',
     badgeColor: 'bg-emerald-500',
-    description: 'Manajemen hak akses otorisasi untuk Supervisor (SPV) dan Kasir dengan matriks permission.',
+    description: 'Manajemen hak akses otorisasi untuk Supervisor (SPV) dan Kasir dengan matriks permission lengkap.',
     subMenus: [
       {
         id: 'core-permissions',
@@ -307,12 +307,12 @@ export const MENU_MODULES: MenuModuleConfig[] = [
   },
   {
     id: 'corporate',
-    title: 'Corporate',
-    subtitle: 'Manajemen Cabang',
+    title: 'Add-On (+1 Cabang)',
+    subtitle: 'Modul Tambah Cabang',
     iconName: 'Building2',
-    badgeCount: '3 Cabang',
-    badgeColor: 'bg-emerald-500',
-    description: 'Pengelolaan multi-outlet bengkel dengan formulir 3 cabang terintegrasi.',
+    badgeCount: 'Add-On',
+    badgeColor: 'bg-emerald-600',
+    description: 'Modul opsional penambahan cabang untuk ekspansi multi-outlet bengkel dengan sinkronisasi operasional.',
     subMenus: [
       {
         id: 'corp-branches',
@@ -327,12 +327,20 @@ export const MENU_MODULES: MenuModuleConfig[] = [
   {
     id: 'setting',
     title: 'Setting',
-    subtitle: 'Tema, Backup & Sistem',
+    subtitle: 'Lisensi, Tema & Backup',
     iconName: 'Settings',
     badgeCount: 'Sistem',
     badgeColor: 'bg-emerald-500',
-    description: 'Pengaturan tema tampilan, pencadangan data dengan opsi kustom, pemulihan data (restore), dan reset.',
+    description: 'Pilihan paket lisensi, pengaturan tema antarmuka, pencadangan data, pemulihan (restore), dan reset.',
     subMenus: [
+      {
+        id: 'setting-lisensi',
+        title: 'Lisensi & Paket',
+        subtitle: 'Basic, Core / Pro & Add-On Cabang',
+        iconName: 'Crown',
+        badge: 'Lisensi',
+        targetView: 'setting-lisensi'
+      },
       {
         id: 'setting-tema',
         title: 'Tema',

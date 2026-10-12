@@ -11,7 +11,16 @@ import {
   FileCheck, 
   Sparkles,
   ShieldAlert,
-  Info
+  Crown,
+  Building2,
+  Store,
+  Calendar,
+  CheckCircle2,
+  Layers,
+  ChevronRight,
+  ShieldCheck,
+  Plus,
+  Minus
 } from 'lucide-react';
 import { 
   ServiceQueue, 
@@ -21,8 +30,12 @@ import {
   WorkshopProfile, 
   RolePermissionConfig, 
   BranchItem,
-  UserSession
+  UserSession,
+  LicensePlan,
+  LICENSE_PLAN_ENUM,
+  LicenseBillingPeriod
 } from '../../types';
+import { LicenseController } from '../../controllers/LicenseController';
 
 interface SettingViewProps {
   initialTab?: string;
@@ -38,10 +51,12 @@ interface SettingViewProps {
   onResetData: (mode: 'daily' | 'factory') => void;
   userSession?: UserSession | null;
   onLogout?: () => void;
+  currentLicensePlan?: LicensePlan;
+  onUpdateLicensePlan?: (plan: LicensePlan) => void;
 }
 
 export const SettingView: React.FC<SettingViewProps> = ({
-  initialTab = 'setting-tema',
+  initialTab = 'setting-lisensi',
   onBack,
   queues,
   spareparts,
@@ -53,9 +68,29 @@ export const SettingView: React.FC<SettingViewProps> = ({
   onRestoreData,
   onResetData,
   userSession,
-  onLogout
+  onLogout,
+  currentLicensePlan,
+  onUpdateLicensePlan
 }) => {
   const [activeTab, setActiveTab] = useState<string>(initialTab);
+
+  // 0. License Plan State (Tahap 1/3: Refactor UI Settings & Enum Lisensi)
+  // Replaces legacy Enterprise with AddOnBranch safely via LicenseController
+  const [currentPlan, setCurrentPlan] = useState<LicensePlan>(() => {
+    return currentLicensePlan || LicenseController.getCurrentPlan();
+  });
+
+  // Core / Pro: UI Opsi Pilihan (1 Bulan, 3 Bulan, 6 Bulan, 12 Bulan)
+  const [coreDuration, setCoreDuration] = useState<LicenseBillingPeriod>(() => {
+    return LicenseController.getCoreDuration();
+  });
+
+  // Add-On (+1 Cabang): Counter modul opsional penambahan cabang
+  const [addonBranchCount, setAddonBranchCount] = useState<number>(() => {
+    return LicenseController.getAddonBranchCount();
+  });
+
+  const [licenseNotification, setLicenseNotification] = useState<string | null>(null);
 
   // 1. Theme State
   const [selectedTheme, setSelectedTheme] = useState<'emerald' | 'teal' | 'forest' | 'lime'>(() => {
@@ -85,6 +120,79 @@ export const SettingView: React.FC<SettingViewProps> = ({
   const [resetConfirmationText, setResetConfirmationText] = useState('');
   const [resetModalMode, setResetModalMode] = useState<'daily' | 'factory' | null>(null);
   const [resetSuccessNotice, setResetSuccessNotice] = useState<string | null>(null);
+
+  // Core Duration Option Packages (Rp1.000 / Hari)
+  const CORE_DURATION_OPTIONS: {
+    id: LicenseBillingPeriod;
+    label: string;
+    days: number;
+    price: number;
+    formattedPrice: string;
+    badge?: string;
+    badgeColor?: string;
+  }[] = [
+    {
+      id: '1_bulan',
+      label: '1 Bulan',
+      days: 30,
+      price: 30000,
+      formattedPrice: 'Rp30.000'
+    },
+    {
+      id: '3_bulan',
+      label: '3 Bulan',
+      days: 90,
+      price: 90000,
+      formattedPrice: 'Rp90.000',
+      badge: 'Hemat',
+      badgeColor: 'bg-emerald-100 text-emerald-800'
+    },
+    {
+      id: '6_bulan',
+      label: '6 Bulan',
+      days: 180,
+      price: 180000,
+      formattedPrice: 'Rp180.000',
+      badge: 'Populer',
+      badgeColor: 'bg-blue-100 text-blue-800'
+    },
+    {
+      id: '12_bulan',
+      label: '12 Bulan',
+      days: 365,
+      price: 360000,
+      formattedPrice: 'Rp360.000',
+      badge: 'Terhemat 1 Tahun',
+      badgeColor: 'bg-amber-100 text-amber-800'
+    }
+  ];
+
+  const handleSelectPlan = (plan: LicensePlan) => {
+    setCurrentPlan(plan);
+    LicenseController.setCurrentPlan(plan);
+    if (onUpdateLicensePlan) {
+      onUpdateLicensePlan(plan);
+    }
+    const planInfo = LicenseController.getPlanInfo(plan);
+    setLicenseNotification(`Paket ${planInfo.name} aktif dan tersimpan!`);
+    setTimeout(() => setLicenseNotification(null), 3000);
+  };
+
+  const handleSelectCoreDuration = (period: LicenseBillingPeriod) => {
+    setCoreDuration(period);
+    LicenseController.setCoreDuration(period);
+    const durOpt = LicenseController.getDurationOption(period);
+    if (durOpt) {
+      setLicenseNotification(`Durasi Core terpilih: ${durOpt.label} (${durOpt.formattedPrice})`);
+      setTimeout(() => setLicenseNotification(null), 2500);
+    }
+  };
+
+  const handleUpdateAddonBranch = (delta: number) => {
+    const updated = Math.max(1, addonBranchCount + delta);
+    setAddonBranchCount(updated);
+    LicenseController.setAddonBranchCount(updated);
+  };
 
   // Theme Choices
   const THEMES = [
@@ -127,9 +235,9 @@ export const SettingView: React.FC<SettingViewProps> = ({
 
   const handleDownloadBackup = () => {
     const backupPayload: any = {
-      app: 'Bengkel Qu 1.60',
+      app: 'Bengkel Qu 1.61',
       timestamp: new Date().toISOString(),
-      version: '1.60.0',
+      version: '1.61.0',
       data: {}
     };
 
@@ -212,13 +320,13 @@ export const SettingView: React.FC<SettingViewProps> = ({
             <button
               onClick={onBack}
               aria-label="Kembali"
-              className="w-10 h-10 rounded-full bg-white/15 active:bg-white/30 flex items-center justify-center transition-colors shadow-sm"
+              className="w-10 h-10 rounded-full bg-white/15 active:bg-white/30 flex items-center justify-center transition-colors shadow-sm cursor-pointer"
             >
               <ArrowLeft className="w-5 h-5 text-white" />
             </button>
             <div>
               <h1 className="text-xl font-bold tracking-tight">Setting Bengkel Qu</h1>
-              <p className="text-xs text-emerald-100 font-medium">Tema, Backup, Restore & Reset</p>
+              <p className="text-xs text-emerald-100 font-medium">Lisensi, Tema, Backup & Pemulihan</p>
             </div>
           </div>
         </div>
@@ -226,33 +334,41 @@ export const SettingView: React.FC<SettingViewProps> = ({
         {/* Tab Switcher Horizontal */}
         <div className="flex items-center gap-1.5 mt-4 bg-emerald-800/50 p-1 rounded-xl text-xs overflow-x-auto scrollbar-none">
           <button
+            onClick={() => setActiveTab('setting-lisensi')}
+            className={`flex-1 min-w-[95px] py-1.5 px-2 rounded-lg font-bold transition-all text-center cursor-pointer ${
+              activeTab === 'setting-lisensi' ? 'bg-white text-[#008952] shadow-xs' : 'text-emerald-100 hover:text-white'
+            }`}
+          >
+            Lisensi & Paket
+          </button>
+          <button
             onClick={() => setActiveTab('setting-tema')}
-            className={`flex-1 min-w-[70px] py-1.5 px-2 rounded-lg font-bold transition-all text-center ${
-              activeTab === 'setting-tema' ? 'bg-white text-[#008952] shadow-xs' : 'text-emerald-100'
+            className={`flex-1 min-w-[65px] py-1.5 px-2 rounded-lg font-bold transition-all text-center cursor-pointer ${
+              activeTab === 'setting-tema' ? 'bg-white text-[#008952] shadow-xs' : 'text-emerald-100 hover:text-white'
             }`}
           >
             Tema
           </button>
           <button
             onClick={() => setActiveTab('setting-backup')}
-            className={`flex-1 min-w-[85px] py-1.5 px-2 rounded-lg font-bold transition-all text-center ${
-              activeTab === 'setting-backup' ? 'bg-white text-[#008952] shadow-xs' : 'text-emerald-100'
+            className={`flex-1 min-w-[85px] py-1.5 px-2 rounded-lg font-bold transition-all text-center cursor-pointer ${
+              activeTab === 'setting-backup' ? 'bg-white text-[#008952] shadow-xs' : 'text-emerald-100 hover:text-white'
             }`}
           >
             Backup - Opsi
           </button>
           <button
             onClick={() => setActiveTab('setting-restore')}
-            className={`flex-1 min-w-[75px] py-1.5 px-2 rounded-lg font-bold transition-all text-center ${
-              activeTab === 'setting-restore' ? 'bg-white text-[#008952] shadow-xs' : 'text-emerald-100'
+            className={`flex-1 min-w-[70px] py-1.5 px-2 rounded-lg font-bold transition-all text-center cursor-pointer ${
+              activeTab === 'setting-restore' ? 'bg-white text-[#008952] shadow-xs' : 'text-emerald-100 hover:text-white'
             }`}
           >
             Restore
           </button>
           <button
             onClick={() => setActiveTab('setting-reset')}
-            className={`flex-1 min-w-[70px] py-1.5 px-2 rounded-lg font-bold transition-all text-center ${
-              activeTab === 'setting-reset' ? 'bg-white text-rose-600 shadow-xs' : 'text-emerald-100'
+            className={`flex-1 min-w-[65px] py-1.5 px-2 rounded-lg font-bold transition-all text-center cursor-pointer ${
+              activeTab === 'setting-reset' ? 'bg-white text-rose-600 shadow-xs' : 'text-emerald-100 hover:text-white'
             }`}
           >
             Reset
@@ -262,6 +378,386 @@ export const SettingView: React.FC<SettingViewProps> = ({
 
       {/* Main Tab Content */}
       <div className="flex-1 p-4 space-y-4 overflow-y-auto">
+        {/* ================= TAB 0: LISENSI & PAKET (TAHAP 1/3) ================= */}
+        {activeTab === 'setting-lisensi' && (
+          <div className="space-y-3.5 animate-in fade-in">
+            {/* Header info */}
+            <div className="bg-white rounded-2xl p-4 shadow-xs border border-slate-100">
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-2">
+                  <Crown className="w-5 h-5 text-amber-500 fill-amber-500/20" />
+                  <h3 className="font-bold text-slate-900 text-sm">Paket Lisensi Usaha Qu</h3>
+                </div>
+                <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-emerald-50 text-[#008952] border border-emerald-200">
+                  Status: {currentPlan === 'Basic' ? 'Basic (Freemium)' : currentPlan === 'Core' ? 'Core / Pro Aktif' : 'Add-On Aktif'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500">
+                Pilih skema paket yang sesuai dengan kebutuhan operasional bengkel Anda.
+              </p>
+            </div>
+
+            {/* Notification alert */}
+            {licenseNotification && (
+              <div className="p-3 bg-emerald-50 border border-emerald-300 text-[#008952] rounded-2xl text-xs font-bold flex items-center gap-2 animate-in fade-in">
+                <Check className="w-4 h-4 shrink-0 stroke-[2.5]" />
+                <span>{licenseNotification}</span>
+              </div>
+            )}
+
+            {/* Current Active Plan Banner */}
+            <div className="bg-linear-to-r from-emerald-800 to-[#008952] rounded-2xl p-4 text-white shadow-md relative overflow-hidden">
+              <div className="absolute right-0 bottom-0 opacity-10 pointer-events-none transform translate-x-2 translate-y-2">
+                <Crown className="w-28 h-28 text-white" />
+              </div>
+              <div className="relative z-10 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-200 block">
+                    Paket Terpasang Saat Ini
+                  </span>
+                  <h4 className="text-base font-extrabold text-white mt-0.5">
+                    {currentPlan === 'Basic' && 'Basic (Freemium)'}
+                    {currentPlan === 'Core' && 'Core / Pro — Rp1.000 / Hari'}
+                    {currentPlan === 'AddOnBranch' && `Add-On (+${addonBranchCount} Cabang)`}
+                  </h4>
+                  <p className="text-[11px] text-emerald-100/90 mt-0.5">
+                    {currentPlan === 'Basic' && 'Kasir dasar & manajemen antrian standar tanpa langganan.'}
+                    {currentPlan === 'Core' && `Pilihan durasi: ${CORE_DURATION_OPTIONS.find((o) => o.id === coreDuration)?.label || '1 Bulan'} (${CORE_DURATION_OPTIONS.find((o) => o.id === coreDuration)?.formattedPrice || 'Rp30.000'}).`}
+                    {currentPlan === 'AddOnBranch' && `Modul ekspansi untuk ${addonBranchCount} cabang tambahan.`}
+                  </p>
+                </div>
+                <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-xs flex items-center justify-center text-white shrink-0">
+                  <CheckCircle2 className="w-5 h-5 text-white stroke-[2.4]" />
+                </div>
+              </div>
+            </div>
+
+            {/* DAFTAR 3 PAKET: Basic (Freemium), Core / Pro, Add-On (+1 Cabang) */}
+            <div className="space-y-3">
+              {/* ---------------- PAKET 1: Basic (Freemium) ---------------- */}
+              <div 
+                className={`bg-white rounded-2xl p-4.5 border transition-all ${
+                  currentPlan === 'Basic' 
+                    ? 'border-[#008952] ring-2 ring-emerald-500/20 shadow-md' 
+                    : 'border-slate-200/90 hover:border-emerald-300 shadow-2xs'
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-2xl bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
+                      <Store className="w-6 h-6 stroke-[2.2]" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-extrabold text-slate-900 text-sm">Basic (Freemium)</h4>
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                          Gratis
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-0.5 font-medium">Gratis / Kasir Dasar</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-base font-black text-slate-800">Rp 0</span>
+                    <span className="text-[10px] text-slate-400 block font-medium">Selamanya</span>
+                  </div>
+                </div>
+
+                <div className="mt-3.5 pt-3 border-t border-slate-100 text-xs text-slate-600 space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 stroke-[2.5]" />
+                    <span>Kasir POS Dasar & Cetak Struk Nota Transaksi</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 stroke-[2.5]" />
+                    <span>Pendaftaran & Antrian Servis Kendaraan</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 stroke-[2.5]" />
+                    <span>Katalog Suku Cadang Dasar (1 Bengkel)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 stroke-[2.5]" />
+                    <span>Tanpa Biaya Berlangganan Bulanan</span>
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectPlan('Basic')}
+                    className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                      currentPlan === 'Basic'
+                        ? 'bg-slate-100 text-slate-700 border border-slate-300'
+                        : 'bg-slate-800 hover:bg-slate-900 text-white shadow-xs'
+                    }`}
+                  >
+                    {currentPlan === 'Basic' ? (
+                      <>
+                        <Check className="w-4 h-4 stroke-[2.5]" />
+                        <span>Paket Basic Sedang Digunakan</span>
+                      </>
+                    ) : (
+                      <span>Pilih Paket Basic (Freemium)</span>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* ---------------- PAKET 2: Core / Pro (Rp1.000 / Hari) ---------------- */}
+              <div 
+                className={`bg-white rounded-2xl p-4.5 border transition-all relative overflow-hidden ${
+                  currentPlan === 'Core' 
+                    ? 'border-[#008952] ring-2 ring-emerald-500/25 shadow-lg bg-emerald-50/15' 
+                    : 'border-emerald-300 hover:border-emerald-500 shadow-2xs'
+                }`}
+              >
+                {/* Popular ribbon */}
+                <div className="absolute top-0 right-0 bg-emerald-600 text-white text-[9px] font-black uppercase tracking-wider py-1 px-3 rounded-bl-xl shadow-xs flex items-center gap-1">
+                  <Sparkles className="w-2.5 h-2.5" />
+                  <span>Rekomendasi Utama</span>
+                </div>
+
+                <div className="flex items-start justify-between pt-1">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-2xl bg-emerald-100 text-[#008952] flex items-center justify-center shrink-0 shadow-xs">
+                      <ShieldAlert className="w-6 h-6 stroke-[2.2]" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-extrabold text-slate-900 text-sm">Core / Pro</h4>
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-[#008952]">
+                          Pro
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#008952] mt-0.5 font-bold">Rp1.000 / Hari</p>
+                    </div>
+                  </div>
+                  <div className="text-right pr-2">
+                    <span className="text-base font-black text-[#008952]">Rp1.000</span>
+                    <span className="text-[10px] text-slate-500 block font-medium">/ Hari Operasional</span>
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-600 mt-2.5 leading-relaxed">
+                  Solusi manajemen bengkel lengkap dengan matriks izin SPV/Kasir, laporan keuangan laba rugi, dan CRM WhatsApp.
+                </p>
+
+                {/* UI OPSI PILIHAN PERIODE (1 Bulan, 3 Bulan, 6 Bulan, 12 Bulan) */}
+                <div className="mt-3.5 p-3 rounded-xl bg-slate-50 border border-slate-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-[#008952]" />
+                      <span className="text-[11px] font-bold text-slate-800">
+                        Pilihan Periode Berlangganan:
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 font-semibold">
+                      Tarif Tetap: Rp1.000/hari
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    {CORE_DURATION_OPTIONS.map((opt) => {
+                      const isSelected = coreDuration === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => handleSelectCoreDuration(opt.id)}
+                          className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer relative ${
+                            isSelected
+                              ? 'bg-white border-[#008952] ring-2 ring-emerald-500/20 shadow-xs'
+                              : 'bg-white/80 border-slate-200 hover:border-emerald-200'
+                          }`}
+                        >
+                          {opt.badge && (
+                            <span className={`absolute -top-1.5 -right-1 text-[8.5px] font-black px-1.5 py-0.2 rounded-md shadow-2xs ${opt.badgeColor}`}>
+                              {opt.badge}
+                            </span>
+                          )}
+                          <div className="flex items-center justify-between">
+                            <span className={`text-xs font-bold ${isSelected ? 'text-[#008952]' : 'text-slate-800'}`}>
+                              {opt.label}
+                            </span>
+                            {isSelected && (
+                              <CheckCircle2 className="w-3.5 h-3.5 text-[#008952] shrink-0" />
+                            )}
+                          </div>
+                          <div className="text-[11px] font-black text-slate-900 mt-0.5">
+                            {opt.formattedPrice}
+                          </div>
+                          <span className="text-[9.5px] text-slate-400 block mt-0.2">
+                            ({opt.days} Hari)
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Fitur Core */}
+                <div className="mt-3 pt-2 text-xs text-slate-600 space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 stroke-[2.5]" />
+                    <span>Semua fitur paket Basic (Freemium) disertakan</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 stroke-[2.5]" />
+                    <span>Hak Akses SPV & Kasir (Matriks Otorisasi Role)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 stroke-[2.5]" />
+                    <span>Laporan Laba Rugi, Piutang & Tutup Kasir Harian</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 stroke-[2.5]" />
+                    <span>Marketing WhatsApp Broadcast & Kupon Diskon Voucher</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 stroke-[2.5]" />
+                    <span>Pencadangan (Backup) & Pemulihan (Restore) JSON</span>
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectPlan('Core')}
+                    className="w-full py-2.5 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 bg-[#008952] hover:bg-emerald-700 active:scale-98 text-white shadow-md shadow-emerald-700/20"
+                  >
+                    {currentPlan === 'Core' ? (
+                      <>
+                        <Check className="w-4 h-4 stroke-[2.5]" />
+                        <span>Paket Core / Pro Aktif ({CORE_DURATION_OPTIONS.find((o) => o.id === coreDuration)?.label})</span>
+                      </>
+                    ) : (
+                      <>
+                        <Crown className="w-4 h-4" />
+                        <span>Pilih Paket Core / Pro ({CORE_DURATION_OPTIONS.find((o) => o.id === coreDuration)?.label})</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* ---------------- PAKET 3: Add-On (+1 Cabang) ---------------- */}
+              {/* Menggantikan posisi tampilan Enterprise sebagai modul opsional penambahan cabang */}
+              <div 
+                className={`bg-white rounded-2xl p-4.5 border transition-all ${
+                  currentPlan === 'AddOnBranch' 
+                    ? 'border-blue-600 ring-2 ring-blue-500/20 shadow-md bg-blue-50/10' 
+                    : 'border-slate-200/90 hover:border-blue-300 shadow-2xs'
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+                      <Building2 className="w-6 h-6 stroke-[2.2]" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-extrabold text-slate-900 text-sm">Add-On (+1 Cabang)</h4>
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
+                          Modul Opsional
+                        </span>
+                      </div>
+                      <p className="text-xs text-blue-700 mt-0.5 font-medium">
+                        Pengganti Skema Enterprise untuk Multi-Cabang
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-base font-black text-blue-800">+{addonBranchCount}</span>
+                    <span className="text-[10px] text-slate-400 block font-medium">Cabang Baru</span>
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-600 mt-2.5 leading-relaxed">
+                  Modul opsional untuk memperluas operasional dari 1 bengkel menjadi multi-cabang/outlet terpusat secara fleksibel.
+                </p>
+
+                {/* Counter Selector Cabang Tambahan */}
+                <div className="mt-3.5 p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-slate-800 block">
+                      Jumlah Cabang Tambahan:
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-medium">
+                      Bisa disesuaikan sewaktu-waktu
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-xl border border-slate-200 shadow-2xs">
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateAddonBranch(-1)}
+                      disabled={addonBranchCount <= 1}
+                      className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-40 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="w-8 text-center text-xs font-black text-slate-900">
+                      +{addonBranchCount}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateAddonBranch(1)}
+                      className="w-7 h-7 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-800 flex items-center justify-center transition-colors cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Fitur Add-On Cabang */}
+                <div className="mt-3.5 pt-3 border-t border-slate-100 text-xs text-slate-600 space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-blue-600 shrink-0 stroke-[2.5]" />
+                    <span>Formulir dan database terintegrasi multi kantor cabang</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-blue-600 shrink-0 stroke-[2.5]" />
+                    <span>Monitoring antrian & transaksi per kantor cabang terpisah</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-blue-600 shrink-0 stroke-[2.5]" />
+                    <span>Penugasan SPV khusus untuk masing-masing outlet</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-blue-600 shrink-0 stroke-[2.5]" />
+                    <span>Bebas ekspansi tanpa migrasi sistem rumit</span>
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectPlan('AddOnBranch')}
+                    className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                      currentPlan === 'AddOnBranch'
+                        ? 'bg-blue-50 text-blue-800 border border-blue-300'
+                        : 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs'
+                    }`}
+                  >
+                    {currentPlan === 'AddOnBranch' ? (
+                      <>
+                        <Check className="w-4 h-4 stroke-[2.5]" />
+                        <span>Add-On Cabang Aktif (+{addonBranchCount} Cabang)</span>
+                      </>
+                    ) : (
+                      <>
+                        <Building2 className="w-4 h-4" />
+                        <span>Aktifkan Add-On (+{addonBranchCount} Cabang)</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ================= TAB 1: TEMA ================= */}
         {activeTab === 'setting-tema' && (
           <div className="space-y-3 animate-in fade-in">
@@ -358,7 +854,7 @@ export const SettingView: React.FC<SettingViewProps> = ({
                       branches: true
                     })
                   }
-                  className="text-[11px] font-semibold text-[#008952] hover:underline"
+                  className="text-[11px] font-semibold text-[#008952] hover:underline cursor-pointer"
                 >
                   Pilih Semua
                 </button>

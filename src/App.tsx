@@ -38,7 +38,8 @@ import {
   ProcurementRecord,
   MarketingCampaign,
   PromoVoucher,
-  ExpenseItem
+  ExpenseItem,
+  LicensePlan
 } from './types';
 import { AndroidFrame } from './components/common/AndroidFrame';
 import { BottomNavBar } from './components/common/BottomNavBar';
@@ -58,6 +59,7 @@ import { LoginScreen } from './components/auth/LoginScreen';
 import { NewQueueModal } from './components/modals/NewQueueModal';
 import { ReceiptModal } from './components/modals/ReceiptModal';
 import { NotificationDrawer } from './components/modals/NotificationDrawer';
+import { LicenseController } from './controllers/LicenseController';
 
 export default function App() {
   // Persistence state
@@ -129,6 +131,10 @@ export default function App() {
     return saved ? JSON.parse(saved) : INITIAL_BRANCHES;
   });
 
+  const [licensePlan, setLicensePlan] = useState<LicensePlan>(() => {
+    return LicenseController.getCurrentPlan();
+  });
+
   const [userSession, setUserSession] = useState<UserSession | null>(() => {
     const saved = localStorage.getItem('bq_user_session');
     return saved ? JSON.parse(saved) : null;
@@ -198,6 +204,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('bq_branches', JSON.stringify(branches));
   }, [branches]);
+
+  useEffect(() => {
+    localStorage.setItem('bq_license_plan', licensePlan);
+  }, [licensePlan]);
 
   // Navigation state
   // screen: 'dashboard' | 'submenu' | 'feature'
@@ -543,6 +553,7 @@ export default function App() {
           profile={profile}
           userSession={userSession}
           onLogout={handleLogout}
+          licensePlan={licensePlan}
         />
       );
     }
@@ -670,7 +681,7 @@ export default function App() {
         case 'setting':
           return (
             <SettingView
-              initialTab={selectedSubMenu?.id || 'setting-tema'}
+              initialTab={selectedSubMenu?.id || 'setting-lisensi'}
               onBack={handleBack}
               queues={queues}
               spareparts={spareparts}
@@ -683,6 +694,8 @@ export default function App() {
               onResetData={handleResetData}
               userSession={userSession}
               onLogout={handleLogout}
+              currentLicensePlan={licensePlan}
+              onUpdateLicensePlan={(plan) => setLicensePlan(plan)}
             />
           );
         default:
